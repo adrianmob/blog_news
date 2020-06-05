@@ -16,18 +16,28 @@
       crossorigin="anonymous"
     />
 
-    <title>Hello, world!</title>
+    <title>Api News</title>
+    <style>
+      .titulo_pagina{
+        text-align: center;
+        margin: 30px 0;
+      }
+    </style>
   </head>
   <body>
-    <h1>Hello, world!</h1>
+    <div class="container">
+      <h1 class="titulo_pagina">Api News</h1>
+      <div class="news row"></div>
+      <div class="row mb-3 mt-3">
+        <div class="col-sm-12">
+          <ul class="pagination justify-content-center">
+        </div>
+      </div>
+    </div>
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script
-      src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
-      integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
-      crossorigin="anonymous"
-    ></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script
       src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
       integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
@@ -40,17 +50,91 @@
     ></script>
   </body>
   <script>
-    document.addEventListener("DOMContentLoaded", async function () {
-      url =
-        "https://newsapi.org/v2/top-headlines?country=mx&apiKey=742ae6265f674938933fec3ae7af00b2&pageSize=10&page=1";
-      let response_apiNews = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+    let user = [];
+    document.addEventListener("DOMContentLoaded", function () {
+      getNews(1);
+    });
+    let index_pagina = 1;
+
+    async function getNews(page) {
+      let url = `https://newsapi.org/v2/top-headlines?country=mx&apiKey=742ae6265f674938933fec3ae7af00b2&pageSize=10&page=${page}`;
+      let req = new Request(url);
+      let response_apiNews = await fetch(req);
+      let json_response = await response_apiNews.json();
+      if (user.length == 0) await getUser(json_response.totalResults);
+      renderNews(json_response.articles);
+    }
+
+    function renderPagination(totalResults) {
+      let num_index = totalResults / 10;
+      num_index = Math.ceil(num_index);
+      for (let index = 0; index < num_index; index++) {
+        let index_pagina = `<li data-index=${index + 1} class="page-item ${
+          index == 0 ? "active" : ""
+        }"><a class="page-link">${index + 1}</a></li>`;
+        $(".pagination").append(index_pagina);
+      }
+
+      $('.page-item').on('click',function(event){
+        let element = event.currentTarget;
+        index_next = $(element).data('index');
+        if(index_pagina != index_next){
+          index_pagina = index_next;
+          $('.active').removeClass('active');
+          $(element).addClass('active');
+          $("html, body").animate({ scrollTop: 0 }, "slow");
+          getNews(index_pagina);
+        }
+      });
+    }
+
+    async function getUser(resultado) {
+      renderPagination(resultado);
+      let url = `https://randomuser.me/api/?results=${resultado}`;
+      req = new Request(url);
+      response_apiUser = await fetch(req);
+
+      json_response = await response_apiUser.json();
+      user = json_response.results;
+    }
+
+    function renderNews(news) {
+      let offset = (index_pagina * 10 ) - 10;
+      console.log(user)
+      $(".news").html('');
+      news.map((news,index) => {
+        let noticia = `
+          <div class="col-sm-6">
+            <div class="card mb-3">
+              <img src="${news.urlToImage}" class="card-img-top" alt="${news.title}" />
+              <div class="card-body">
+                <h5 class="card-title">${news.title}</h5>
+                <p class="card-text">
+                  ${news.description}
+                </p>
+                <p class="card-text">
+                  <small class="text-muted">${cambioFecha(news.publishedAt)}</small>
+                </p>
+                 <p class="card-text">
+                  <img src="${user[(offset + index)].picture.thumbnail}" alt="..." class="rounded-sm">
+                  <small class="text-muted">${user[(offset + index)].name.first} ${user[(offset + index)].name.last}</small>
+                </p>
+                <div class="d-flex justify-content-end">
+                  <a href="${news.url}" target="blank" class="btn btn-primary text-right">Notica completa</a>
+
+                </div>
+              </div>
+            </div>
+       </div>`;
+        $(".news").append(noticia);
       });
 
-      console.log(response_apiNews);
-    });
+    }
+    function cambioFecha(fecha){
+      let fecha_nueva = new Date(fecha);
+      return fecha_nueva = `
+      ${fecha_nueva.getDay() < 10 ? `0${fecha_nueva.getDay()}` : fecha_nueva.getDay()}-${fecha_nueva.getMonth() + 1 < 10 ? `0${fecha_nueva.getMonth() + 1}` : fecha_nueva.getMonth() + 1}-${fecha_nueva.getFullYear()} 
+      ${fecha_nueva.getHours()}:${fecha_nueva.getMinutes() < 10 ? `0${fecha_nueva.getMinutes()}` : fecha_nueva.getMinutes()}`
+    }
   </script>
 </html>
